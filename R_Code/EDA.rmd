@@ -1,0 +1,313 @@
+---
+title: "EDA"
+author: "Thomas FitzGerald"
+date: "2024-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+
+library(tidyverse)
+library(dplyr)
+
+
+library(ggplot2)
+library(ggridges)
+library(plotly)
+
+library(stats)
+library(multcomp)
+library(emmeans)
+library(lsmeans)
+library(stringr)
+library(lubridate)
+```
+
+```{r}
+variable.unit.converter <- function(df,df.datadict,var.name,unit.type.new){
+  #Retrieve information from data dictionary
+  var1 <- df[var.name]
+  var.type <- subset(df.datadict,name==var.name)$measurement_type
+  unit.type <- subset(df.datadict,name==var.name)$measurement_unit
+
+  #Check   
+  #if (unit.type==unit.type.new) {return(var1)}
+  
+  if(var.type=='hourly_wage') {
+    hours.var <- df[paste(var.name,'_hours',sep='')]
+    
+    if (unit.type.new == 'minute') {var1 <- var1/60} else 
+      if (unit.type.new == 'hour') {var1 <- var1} else 
+      if (unit.type.new == 'day') {var1 <- var1 * hours.var / 5} else 
+      if (unit.type.new == 'week') {var1 <- var1 * hours.var} else 
+      if (unit.type.new == 'month') {var1 <- var1 * hours.var * 4.3} else 
+      if (unit.type.new == 'year') {var1 <- var1 * hours.var * 52} else 
+      {var1 <- var1}
+  }
+  if (var.type == 'weight') {
+    if (unit.type.new == 'ounce') {var1 <- var1/16} else
+      if (unit.type.new == 'pound') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  if (var.type == 'volume') {
+    if (unit.type.new == 'ounce') {var1 <- var1/128} else
+      if (unit.type.new == 'gallon') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  return(var1)
+}
+```
+
+```{r}
+dir <- 'C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data'
+df <- read.csv(paste(dir,'main_data_file.csv',sep='\\'))
+df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+df
+colnames(df)
+df.datadict
+```
+
+```{r}
+df %>% dplyr::select(colnames(df)[grep("hours",colnames(df),perl=TRUE)])
+df %>% dplyr::select(colnames(df)[grep("hourly",colnames(df),perl=TRUE)])
+c('manufacturing_general')
+```
+
+```{r}
+plot_ly(data=df,x=~year,mode='lines+markers') %>%
+  add_trace(y = ~manufacturing_general) %>%
+  add_trace(y = ~retail) %>%
+  add_trace(y = ~mining_logging_wages)
+```
+
+Dictionary of {display_name:var_name}
+```{r}
+
+base_var <- df$manufacturing_general
+var1 <- df$gallon_of_milk
+var2 <- df$pound_of_ground_beef
+prop1 <- var1/base_var
+prop2 <- var2/base_var
+
+df.display <- as.data.frame(cbind(df$year,prop1,prop2))
+colnames(df.display) <- c('year','Retail','Mining')
+
+
+plot_ly(data=df.display,x=~year,mode='lines+markers') %>%
+  add_trace(y = ~Retail) %>%
+  add_trace(y = ~Mining)
+```
+Currently, if you do wage base, product var1/var2, you get a proportion.  Instead, we want to display it in a relevent unit.
+
+So, currently, 1 loaf of bread might be .14 hours.  Instead, we would want this listed as 8.4 minutes.
+
+So, you select "manufacturing labor" as your base unit.  Then, you can select minutes, hours, days, weeks, months, or years.
+
+  *Later, we could add an intelligent scaling option, which would pick a unit that is as close as possible to 1-100 units.  So, bread would scale to minutes, since it runs 8-~20 minutes.
+
+
+
+
+```{r}
+df <- df
+df.datadict <- df.datadict
+var.name <- 'gallon_of_gasoline'
+unit.type.new <- 'gallon'
+
+variable.unit.converter <- function(df,df.datadict,var.name,unit.type.new){
+  #Retrieve information from data dictionary
+  var1 <- df[var.name]
+  var.type <- subset(df.datadict,name==var.name)$measurement_type
+  unit.type <- subset(df.datadict,name==var.name)$measurement_unit
+
+  #Check   
+  #if (unit.type==unit.type.new) {return(var1)}
+  
+  if(var.type=='hourly_wage') {
+    hours.var <- df[paste(var.name,'_hours',sep='')]
+    
+    if (unit.type.new == 'minute') {var1 <- var1/60} else 
+      if (unit.type.new == 'hour') {var1 <- var1} else 
+      if (unit.type.new == 'day') {var1 <- var1 * hours.var / 5} else 
+      if (unit.type.new == 'week') {var1 <- var1 * hours.var} else 
+      if (unit.type.new == 'month') {var1 <- var1 * hours.var * 4.3} else 
+      if (unit.type.new == 'year') {var1 <- var1 * hours.var * 52} else 
+      {var1 <- var1}
+  }
+  if (var.type == 'weight') {
+    if (unit.type.new == 'ounce') {var1 <- var1/16} else
+      if (unit.type.new == 'pound') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  if (var.type == 'volume') {
+    if (unit.type.new == 'ounce') {var1 <- var1/128} else
+      if (unit.type.new == 'gallon') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  return(var1)
+}
+df$retail_hours[125]
+variable.unit.converter(df,df.datadict,'retail','minute')[125,1]
+variable.unit.converter(df,df.datadict,'retail','hour')[125,1]
+variable.unit.converter(df,df.datadict,'retail','day')[125,1]
+variable.unit.converter(df,df.datadict,'retail','week')[125,1]
+variable.unit.converter(df,df.datadict,'retail','month')[125,1]
+variable.unit.converter(df,df.datadict,'retail','year')[125,1]
+sort(colnames(df))
+```
+
+```{r}
+#v1
+base_var.name <- 'flour'
+base_var.unit <- 'pound'
+var1.name <- 'retail'
+var1.unit <- 'hour'
+var2.name <- 'financial'
+var2.unit <- 'hour'
+
+base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+
+var1 <- variable.unit.converter(df,df.datadict,var1.name,var1.unit)
+var2 <- variable.unit.converter(df,df.datadict,var2.name,var2.unit)
+prop1 <- var1/base_var
+prop2 <- var2/base_var
+
+df.display <- as.data.frame(cbind(df$year,prop1,prop2))
+colnames(df.display) <- c('year',colnames(var1),colnames(var2))
+
+plot_ly(data=df.display %>% pivot_longer(cols=c(colnames(var1),colnames(var2)),names_to='names',values_to='values'),
+        x=~year,mode='lines+markers', split= ~names) %>%
+  add_trace(y = ~values) %>%
+  layout(legend=list(title=list(text='Variables')),
+         xaxis = list(title = 'Year'),
+         yaxis = list(title = 'Gallons of Gasoline per Hour'))
+```
+
+```{r}
+#v2
+base_var.name <- 'ground_beef'
+base_var.unit <- 'pound'
+var.names <- c('retail','financial','mining_logging_wages')
+var.units <- c('hour','hour','hour')
+
+base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+  df.display <- as.data.frame(df$year)
+  
+  for (i in 1:length(var.names)) {
+    var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
+    prop <- var/base_var
+    df.display <- as.data.frame(cbind(df.display,prop))
+  }
+  
+  colnames(df.display) <- c('year',var.names)
+  df.display <- df.display %>% pivot_longer(cols=var.names)
+    
+  plot_ly(data=df.display,
+          x=~year,mode='lines+markers', split= ~name) %>%
+    add_trace(y = ~value) %>%
+    layout(legend=list(title=list(text='Variables')),
+           xaxis = list(title = 'Year'),
+           yaxis = list(title = 'Gallons of Gasoline per Hour'))
+}
+
+base_var_scatterplot(df,df.datadict,base_var.name,base_var.unit,var.names,var.units)
+```
+```{r}
+
+#v2
+base_var.name <- 'ground_beef'
+base_var.unit <- 'pound'
+var.names <- c('retail','financial','mining_logging_wages')
+var.units <- c('unit','unit','unit')
+
+create_df_display <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+  df.display <- as.data.frame(df$year)
+  
+  for (i in 1:length(var.names)) {
+    var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
+    prop <- var/base_var
+    df.display <- as.data.frame(cbind(df.display,prop))
+  }
+  
+  colnames(df.display) <- c('year',var.names)
+  df.display <- df.display %>% pivot_longer(cols=var.names)
+  return(df.display)
+}
+
+create_df_display(df,df.datadict,base_var.name,base_var.unit,var.names,var.units)
+```
+
+df$manufacturing_durable_goods_hourly
+
+Base_Variable
+  Dollars
+  Wages
+    minute
+    hour*
+    day
+    week
+    month
+    year
+  PhysicalGoods
+
+  Weight
+    Ounces
+    Pounds*
+  Volume
+    Ounces
+    Gallon
+
+hourly
+weekly
+annually
+
+minute = hourly * 60
+hour = hourly
+day = weekly / 5
+weekly = hourly * hours
+monthly = weekly * 4.345
+yearly = weekly * 52
+
+ounces = pounds * 16
+ounces = gallon * 128
+
+var.name <- 'retail'
+subset(df.datadict,name==var.name)$measurement_type
+
+df[paste(var.name,'_hours',sep='')]
+df[paste(var.name,'_hourly',sep='')]
+
+```
+
+```{r}
+    # myplot <- plot_ly(data=df,
+    #                   x=year,
+    #                   mode = 'markers') %>%
+      # layout(
+      #   title = paste(input.r$region.1.r,': ',input.r$cod_1.r,sep=""),
+      #   # xaxis = list(title="Month",
+      #   #              range=c(1,52),
+      #   #              showgrid = TRUE,
+      #   #              ticktext = c("Jan","Feb","Mar","Apr","May","June","July","Aug","Sep","Oct","Nov","Dec"),
+      #   #              tickvals = c(1,5,9,14,18,22,27,31,35,40,45,49)
+      #   #              ),
+      #   yaxis = list(title="Mortality",range=c(0,y.top)),
+      #   showlegend = TRUE,
+      #   legend = list(
+      #     title=list(text="Year", font=list(color="black", size=15)),
+      #     orientation = 'h',
+      #     xanchor = "center",
+      #     x = .5,
+      #     y = -.2
+        )
+      )
+
+
+```
+
+
+
+

@@ -1,0 +1,14 @@
+name: Covid_Mortality_Dashboard
+title: Covid_Mortality_Dashboard
+username:
+account: bluecrabcoast
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5886486
+bundleId: 5867069
+url: https://bluecrabcoast.shinyapps.io/Covid_Mortality_Dashboard/
+when: 1651631213.64028
+lastSyncTime: 1651631213.64028
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Weekly_Counts_of_Death_by_Jurisdiction_and_Select_Causes_of_Death.csv

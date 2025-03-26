@@ -1,0 +1,167 @@
+---
+title: "server_test"
+author: "Thomas FitzGerald"
+date: "2025-03-26"
+output: html_document
+---
+
+Broad Outline:
+Libraries
+Import Data
+Initial Data Modification
+
+Color Palette
+Define Drop-down lists
+
+shinyServer
+  Reactive Variables
+  observeEvents() functions
+  Selectors
+
+
+```{r setup, include=FALSE}
+library(shiny)
+library(shinyWidgets)
+library(shinydashboard)
+library(readr)
+library(DT)
+library(plotly)
+library(ggplot2)
+library(tidyverse)
+library(stringr)
+library(lubridate)
+library(RColorBrewer)
+#library(usmap)
+```
+
+```{r}
+#Main Value Data
+dir <- 'C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data'
+df.raw <- read.csv(paste(dir,'main_data_file.csv',sep='\\'))
+df.orig <- df.raw #df.raw used for table display.
+
+#Data Dictionary
+df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+```
+
+This section defines drop-down lists (Variable names, etc.)
+```{r}
+#Set Drop-Down lists
+variables.list <- as.data.frame(colnames(df.orig))
+colnames(variables.list)<-c("vars")
+variables.list <- variables.list %>% 
+  subset(!vars %in% c('X','year')) %>%
+  filter(!grepl('hours', vars))
+variables.list
+```
+
+```{r}
+#Define Color Palette for Graphs
+palette.main<-brewer.pal(n = 8, name = "Spectral")
+ty.color<-palette.main[7]
+ly.color<-palette.main[3]
+lly.color<-palette.main[1]
+```
+
+```{r}
+#Set column names for drop-down.
+friendly_disease_list<-c(
+  "All_Causes",
+  "All_Natural_Causes",
+  "Septicemia",
+  "Cancer",
+  "Diabetes",
+  "Alzheimers",
+  "Influenza_and_Pneumonia",
+  "Chronic_Lowe_Respiratory_Diseases",
+  "Other_Respiratory_Diseases",
+  "Nephritis(Kidney_Problems)",
+  "Not_Elsewhere_Classified",
+  "Heart_Diseases",
+  "Cerebrovascular(Stroke,Aneurysm)",
+  "Covid_19_Multiple_COD",
+  "Covid_19_Underlying_COD"
+)
+```
+
+Below is the reactive (input.r) variables.  Comments are from butchered version.
+```{r}
+  input.r <- reactiveValues(
+    df.display = df.orig,
+    base_var.name = 'ground_beef',
+    base_var.unit = 'pound',
+    var.names = c('retail','financial'),
+    var.units = c('hour','hour')
+  )
+    # df.ytd.1 = subset(df.main.1,MMWR.Year==update.year),
+    # df.ty.1 = subset(df.main.1,MMWR.Year==last.year&ty_flag==TRUE),
+    # df.ly.1 = subset(df.main.1,MMWR.Year==last.year),
+    # df.lly.1 = subset(df.main.1,MMWR.Year==last.last.year),
+    # df.ytd.2 = subset(df.main.2,MMWR.Year==update.year),
+    # df.ty.2 = subset(df.main.2,MMWR.Year==last.year&ty_flag==TRUE),
+    # df.ly.2 = subset(df.main.2,MMWR.Year==last.year),
+    # df.lly.2 = subset(df.main.2,MMWR.Year==last.last.year),
+    # current.year.total.1 = 1,
+    # last.year.total.1 = 2,
+    # last.last.year.total.1 = 3,
+    # current.year.total.2 = 4,
+    # last.year.total.2 = 5,
+    # last.last.year.total.2 = 6,
+    # region.1.r = "United States",
+    # region.2.r = "United States",
+    # cod_1.r = "Covid_19_Underlying_COD",
+    # cod_2.r = "Covid_19_Multiple_COD",
+    # current.year.total.1 = sum(subset(df.main.1,MMWR.Year==update.year)["disp"],na.rm=TRUE),
+    # #Map
+    # df.map = df.map,
+    # df.map.active = subset(df.map,MMWR.Year==last.year & MMWR.Week==1),
+    # map.year.r = last.year,
+    # map.week.r = 1,
+    # # last.year.total.1 = sum(df.ly.1["disp"],na.rm=TRUE),
+    # # last.last.year.total.1 = sum(df.lly.1["disp"],na.rm=TRUE),
+    # # current.year.total.2 = sum(df.ytd.1["disp"],na.rm=TRUE),
+    # # last.year.total.2 = sum(df.ly.1["disp"],na.rm=TRUE),
+    # # last.last.year.total.2 = sum(df.lly.1["disp"],na.rm=TRUE),
+    # view.r = c(TRUE,FALSE,FALSE,TRUE,FALSE,FALSE), #Years to display: first 3 plot 1, second 3 plot 2.  TY/LY/LLY.
+```
+```{r}
+# #Set main dataframes to filter from
+df.display <- df.orig
+```
+
+Below is for server side observed elements.
+regionSelector1 -> baseVarSelector
+regionSelector2 -> REMOVED
+
+Old
+```{r}
+  #Top Region Selector
+  output$regionSelector <- renderUI({
+    selectInput(
+      inputId = "myRegion1",
+      label = "Select a State, or 'United States' to view all:",
+      choices = region.list
+    )
+  })
+
+  #Reacts to UI element 'regionSelector1'
+  observeEvent(input$myRegion1, {
+    input.r$region.1.r <- input$myRegion1
+    print(paste('Region 1 changed, active region is now:',input.r$region.1.r))
+    input.r$df.ytd.1 <-   subset(input.r$df.main.1,Jurisdiction.of.Occurrence==input.r$region.1.r & MMWR.Year==update.year)
+    input.r$df.ty.1 <-    subset(input.r$df.main.1,Jurisdiction.of.Occurrence==input.r$region.1.r & MMWR.Year==last.year&ty_flag==TRUE)
+    input.r$df.ly.1 <-    subset(input.r$df.main.1,Jurisdiction.of.Occurrence==input.r$region.1.r & MMWR.Year==last.year)
+    input.r$df.lly.1 <-   subset(input.r$df.main.1,Jurisdiction.of.Occurrence==input.r$region.1.r & MMWR.Year==last.last.year )
+  }) 
+```
+
+New
+```{r}
+  #Variable Selector
+
+  #Reacts to UI element 'baseVarSelector'
+  observeEvent(input$baseVar1, {
+    input.r$base.var.1.r <- input$baseVar1
+    print(paste('Base Variables changed, active base variable is now:',input.r$region.1.r))
+  }) 
+```
