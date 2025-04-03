@@ -42,6 +42,18 @@ df.orig <- df.raw #df.raw used for table display.
 
 #Data Dictionary
 df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+
+list <- rowSums(is.na(df.raw))
+which(list %in% list[list!=max(rowSums(is.na(df.raw)))])
+max(rowSums(is.na(df.raw)))
+
+list[list!=max(rowSums(is.na(df.raw)))]
+
+non_max_na_filter <- function(df){
+  #Returns df as only rows with non-max NA.  So, if the most NA columns in any row is 10, removes all rows with 10 NAs.
+  return(df[which(rowSums(is.na(df)) %in% rowSums(is.na(df))[rowSums(is.na(df))!=max(rowSums(is.na(df)))]),])
+}
+non_max_na_filter(df.raw)
 ```
 
 This section defines drop-down lists (Variable names, etc.)
