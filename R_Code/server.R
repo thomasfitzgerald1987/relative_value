@@ -149,9 +149,14 @@ shinyServer(function(input, output, session) {
                   isolate(input.r$var.name.3.r)),
     var.units = c(isolate(input.r$var.unit.1.r),
                   isolate(input.r$var.unit.2.r),
-                  isolate(input.r$var.unit.3.r)),
-  )
-    # df.display = create_df_display(df.orig,df.datadict,base_var.name.1.r,base_var.unit.1.r,var.names,var.units)
+                  isolate(input.r$var.unit.3.r)))
+  
+  input.df <- reactiveValues(df.display = create_df_display(df.orig,df.datadict,
+                                                            isolate(input.r$base_var.name.1.r),
+                                                            isolate(input.r$base_var.unit.1.r),
+                                                            isolate(input.lists$var.names),
+                                                            isolate(input.lists$var.units)))
+    
   
   #BaseVar
   output$base_var_Selector <- renderUI({
@@ -197,17 +202,16 @@ shinyServer(function(input, output, session) {
     input.r$var.name.3.r <- input$var.name.3.r
     print(paste('var3 changed, active var3 is now:',input.r$var.name.3.r))})
 
-
-
   #Plots
   output$myplot1 <- renderPlotly({
-    myplot <- base_var_scatterplot(df.orig,df.datadict,
+    myplot <- base_var_scatterplot(input.df$df.display,df.datadict,
                                    input.r$base_var.name.1.r,input.r$base_var.unit.1.r,
                                    input.lists$var.names,
                                    input.lists$var.units)
   })
   
   output$table_1 <- renderDataTable(df.orig)
+  output$table_2 <- renderDataTable(non_max_na_filter(input.df$df.display))
   
   
   
