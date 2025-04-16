@@ -50,10 +50,32 @@ def BLS_wages_preprocessor(filename,id,var_name):
     return(df)
 
 def auronum_preprocessor(filename,id,var_name):
+    #Get File
     df = pd.read_excel(filename)
+    #Isolate columns of interest
     df = df.iloc[:,df.columns.get_loc(id):df.columns.get_loc(id)+2]
+    #Standardize names
     df.columns = ['year',var_name]
+    #Get year averages
     df.year = df.year.dt.year
+    #Unit Conversions
     df[var_name] = df[var_name]*16
+    df = df.groupby(['year']).mean().reset_index()
+    return(df)
+
+def bitcoin_data_parser(filename,id,var_name):
+    #Get File
+    df = pd.read_csv(filename)
+    #Isolate columns of interest
+    df = df[['Timestamp',id]]
+    #Standardize names
+    df.columns = ['year',var_name]
+    #Clean
+    df[var_name] = pd.to_numeric(df[var_name],errors='coerce')
+    df = df.dropna()
+    #Convert to Annual
+    df.year = pd.to_datetime(df.year).dt.year
+    #Unit Conversions
+    #Average by Year
     df = df.groupby(['year']).mean().reset_index()
     return(df)

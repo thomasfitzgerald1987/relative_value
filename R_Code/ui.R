@@ -19,37 +19,51 @@ ui <- navbarPage(
              dashboardHeader(title = "dashboardHeader"),
              #Sidebar
              dashboardSidebar(
-                title = "dashboardSideBar",
-                uiOutput("base_var_Selector",selected='ground_beef'),
-                uiOutput("base_var_unit_Selector"),
+               #style = "background: black",
+                wellPanel(
+                  style = "background: grey",
+                  uiOutput("base_var_Selector",selected='ground_beef'),
+                  uiOutput("base_var_unit_Selector"),
+                ),
+                wellPanel(
+                  style = "background: blue",
                 uiOutput("var_1_Selector"),
-                sliderInput("pound","ounce"),
-                #uiOutput("var_1_unit_Selector"),
+                uiOutput("var_1_unit_Selector"),
+                ),
+                wellPanel(
+                  style = "background: orange",
                 uiOutput("var_2_Selector"),
                 uiOutput("var_2_unit_Selector"),
+                ),
+                wellPanel(
+                  style = "background: green",
                 uiOutput("var_3_Selector"),
                 uiOutput("var_3_unit_Selector")
-                ),
+                )
+              ),
              #Body
              dashboardBody(
+
                fluidRow(
-                   box(width=11,
+                 height = 8,
+                   box(width=12,
                        status="info",
                        #title="Cause of Death 1",
                        solidHeader=TRUE,
                        plotlyOutput("myplot1",width='auto',height='auto')
                    )),
                fluidRow(
-                 box(width=11,
-                     status="info",
-                     solidHeader=TRUE,
-                     dataTableOutput('table_1'))
+                 height = 4,
+                 box(style = 'background:grey', width=3,
+                     uiOutput("baseVarName")),
+                 box(style = 'background:blue', width=3),
+                 box(style = 'background:orange', width=3),
+                 box(style = 'background:green', width=3)
                )
              )
 )#/dashboardPage 1
 
 ),#/tabPanel 1
-
 tabPanel(title = "Raw Data",
          dashboardPage(
            #Header
@@ -58,10 +72,16 @@ tabPanel(title = "Raw Data",
            dashboardSidebar(
              title = "dashboardSideBar2"),
            #Body
-           dashboardBody(dataTableOutput('table_2'))
+           dashboardBody(dataTableOutput('table_2')),
 )#/dashboardPage 2
-)#/tabPanel2
-
+),#/tabPanel2
+tabPanel(title = "Sources",
+         dashboardHeader(title = "Sources"),
+         dashboardBody(
+           fluidRow(
+             box(title = "US Bureau of Labor Statistics"
+                 )
+           )))
 )#/navBarPage
 
 
