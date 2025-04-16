@@ -12,14 +12,22 @@ library(RColorBrewer)
 #library(usmap)
 
 #Functions######################################################################
+variable.unit.options <- function(var.name,df.datadict){
+  unit.type <- subset(df.datadict, name==var.name)$measurement_type
+  print(unit.type)
+  if(unit.type=='currency'){output <- 'unit'}
+  if(unit.type=='hourly_wage'){output <- c('hour','minute','day','week','month','year')}
+  if(unit.type=='weight'){output <- c('pound','ounce')}
+  if(unit.type=='volume'){output <- c('gallon','ounce')}
+  if(unit.type=='other'){output <- 'unit'}
+  return(output)
+}
+
 variable.unit.converter <- function(df,df.datadict,var.name,unit.type.new){
   #Retrieve information from data dictionary
   var1 <- df[var.name]
   var.type <- subset(df.datadict,name==var.name)$measurement_type
   unit.type <- subset(df.datadict,name==var.name)$measurement_unit
-  
-  #Check   
-  #if (unit.type==unit.type.new) {return(var1)}
   
   if(var.type=='hourly_wage') {
     hours.var <- df[paste(var.name,'_hours',sep='')]
@@ -66,9 +74,11 @@ non_max_na_filter <- function(df){
 }
 
 base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  print(paste(var.names,var.units,sep=' '))
   base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+
   df.display <- as.data.frame(df$year)
-  
+    
   for (i in 1:length(var.names)) {
     var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
     prop <- var/base_var
@@ -83,7 +93,7 @@ base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.
     add_trace(y = ~value) %>%
     layout(legend=list(title=list(text='Variables')),
            xaxis = list(title = 'Year'),
-           yaxis = list(title = 'Gallons of Gasoline per Hour'))
+           yaxis = list(title = paste(base_var.name, paste('(', base_var.unit,')',sep=''),sep=' ')))
   return(myplot)
 }
 
@@ -102,29 +112,12 @@ ty.color<-palette.main[7]
 ly.color<-palette.main[3]
 lly.color<-palette.main[1]
 
-#Set column names for drop-down.
-friendly_disease_list<-c(
-  "All_Causes",
-  "All_Natural_Causes",
-  "Septicemia",
-  "Cancer",
-  "Diabetes",
-  "Alzheimers",
-  "Influenza_and_Pneumonia",
-  "Chronic_Lowe_Respiratory_Diseases",
-  "Other_Respiratory_Diseases",
-  "Nephritis(Kidney_Problems)",
-  "Not_Elsewhere_Classified",
-  "Heart_Diseases",
-  "Cerebrovascular(Stroke,Aneurysm)",
-  "Covid_19_Multiple_COD",
-  "Covid_19_Underlying_COD")
-
 # #Set main dataframes to filter from
 df.main.1 <- df.orig
 
 #Set Drop-Down lists
 variables.list <- as.data.frame(colnames(df.orig))
+units.list <- c('unit','minute','hour','day','week','month','year','ounce','pound','oun')
 colnames(variables.list)<-c("vars")
 variables.list <- variables.list %>% 
   subset(!vars %in% c('X','year')) %>%
@@ -156,7 +149,12 @@ shinyServer(function(input, output, session) {
                                                             isolate(input.r$base_var.unit.1.r),
                                                             isolate(input.lists$var.names),
                                                             isolate(input.lists$var.units)))
-    
+
+  #Untested
+  # observeEvent(input.r$var.name.1.r, {
+  #   input.lists$var.names <- input.lists$var.names
+  #   print(paste('Variable Changed changed, var.names is now:',input.lists$var.names))
+  #     })
   
   #BaseVar
   output$base_var_Selector <- renderUI({
@@ -166,32 +164,68 @@ shinyServer(function(input, output, session) {
       choices = variables.list)
   })
   observeEvent(input$base_var.name.1.r, {
-    input.r$var.name.1.r <- input$base_var.name.1.r
+    input.r$base_var.name.1.r <- input$base_var.name.1.r
     print(paste('base_var changed, active base_var is now:',input.r$base_var.name.1.r))})
+  #Base_Var_Unit
+  output$base_var_unit_Selector <- renderUI({
+    selectInput(
+      inputId = "base_var.unit.1.r",
+      label = "Select a unit of measurement for Base Var Unit 1",
+      choices = variable.unit.options(input.r$base_var.name.1.r,df.datadict))})
+  
+  observeEvent(input$base_var.unit.1.r, {
+    input.r$base_var.unit.1.r <- input$base_var.unit.1.r
+    print(paste('Base Var unit changed, active base var unit is now:',input.r$base_var.unit.1.r))})
+  
+  
   
   #Variable 1
-  output$var_1_Selector <- renderUI({
-    selectInput(
-      inputId = "var.name.1.r",
-      label = "Select a variable to compare",
-      choices = variables.list)
-  })
-  observeEvent(input$var.name.1.r, {
-    input.r$var.name.1.r <- input$var.name.1.r
-    print(paste('var1 changed, active var1 is now:',input.r$var.name.1.r))})
+    #Name
+    output$var_1_Selector <- renderUI({
+      selectInput(
+        inputId = "var.name.1.r",
+        label = "Select a variable to compare",
+        choices = variables.list)})
+    
+    observeEvent(input$var.name.1.r, {
+      input.r$var.name.1.r <- input$var.name.1.r
+      print(paste('var1 changed, active var1 is now:',input.r$var.name.1.r))})
+    
+    #Unit
+    output$var_1_unit_Selector <- renderUI({
+      selectInput(
+        inputId = "var.unit.1.r",
+        label = "Select a unit of measurement for Variable 1",
+        choices = variable.unit.options(input.r$var.name.1.r,df.datadict))})
+    
+    observeEvent(input$var.unit.1.r, {
+      input.r$var.unit.1.r <- input$var.unit.1.r
+      print(paste('var1 unit changed, active var1 unit is now:',input.r$var.unit.1.r))})
   
   #Variable 2
-  output$var_2_Selector <- renderUI({
-    selectInput(
-      inputId = "var.name.2.r",
-      label = "Select a variable to compare",
-      choices = variables.list)
-  })
-  observeEvent(input$var.name.2.r, {
-    input.r$var.name.2.r <- input$var.name.2.r
-    print(paste('var2 changed, active var2 is now:',input.r$var.name.2.r))})  
-  
+    #Name
+    output$var_2_Selector <- renderUI({
+      selectInput(
+        inputId = "var.name.2.r",
+        label = "Select a variable to compare",
+        choices = variables.list)
+    })
+    observeEvent(input$var.name.2.r, {
+      input.r$var.name.2.r <- input$var.name.2.r
+      print(paste('var2 changed, active var2 is now:',input.r$var.name.2.r))})  
+    #Unit
+    output$var_2_unit_Selector <- renderUI({
+      selectInput(
+        inputId = "var.unit.2.r",
+        label = "Select a unit of measurement for Variable 2",
+        choices = variable.unit.options(input.r$var.name.2.r,df.datadict))})
+    
+    observeEvent(input$var.unit.2.r, {
+      input.r$var.unit.2.r <- input$var.unit.2.r
+      print(paste('var2 unit changed, active var2 unit is now:',input.r$var.unit.2.r))})
+    
   #Variable 3
+  #Name
   output$var_3_Selector <- renderUI({
     selectInput(
       inputId = "var.name.3.r",
@@ -201,17 +235,36 @@ shinyServer(function(input, output, session) {
   observeEvent(input$var.name.3.r, {
     input.r$var.name.3.r <- input$var.name.3.r
     print(paste('var3 changed, active var3 is now:',input.r$var.name.3.r))})
-
-  #Plots
-  output$myplot1 <- renderPlotly({
-    myplot <- base_var_scatterplot(input.df$df.display,df.datadict,
-                                   input.r$base_var.name.1.r,input.r$base_var.unit.1.r,
-                                   input.lists$var.names,
-                                   input.lists$var.units)
-  })
+  #Unit
+  output$var_3_unit_Selector <- renderUI({
+    selectInput(
+      inputId = "var.unit.3.r",
+      label = "Select a unit of measurement for Variable 3",
+      choices = variable.unit.options(input.r$var.name.3.r,df.datadict))})
   
-  output$table_1 <- renderDataTable(df.orig)
-  output$table_2 <- renderDataTable(non_max_na_filter(input.df$df.display))
+  observeEvent(input$var.unit.3.r, {
+    input.r$var.unit.3.r <- input$var.unit.3.r
+    print(paste('var3 unit changed, active var3 unit is now:',input.r$var.unit.3.r))})
+  
+  #Plots
+  
+  output$myplot1 <- renderPlotly({
+    #print(paste('df.display:',dim(df.orig),sep=' '))
+    #print(paste('df.datadict:',dim(df.datadict),sep=' '))
+    #print(paste('base_var.name:',input.r$base_var.name.1.r,sep=' '))
+    #print(paste('base_var.unit:',input.r$base_var.unit.1.r),sep=' ')
+    #print(paste('var.names:',length(input.lists$var.names),sep=' '))
+    #print(paste('var.units:',length(input.lists$var.units),sep=' '))
+    
+    #function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units)
+    myplot <- base_var_scatterplot(df.orig,
+                                   df.datadict,
+                                   input.r$base_var.name.1.r,input.r$base_var.unit.1.r,
+                                   c(input.r$var.name.1.r,input.r$var.name.2.r,input.r$var.name.3.r),
+                                   c(input.r$var.unit.1.r,input.r$var.unit.2.r,input.r$var.unit.3.r))})
+  
+  output$table_1 <- renderDataTable(non_max_na_filter(input.df$df.display))
+  output$table_2 <- renderDataTable(df.orig)
   
   
   

@@ -21,9 +21,14 @@ ui <- navbarPage(
              dashboardSidebar(
                 title = "dashboardSideBar",
                 uiOutput("base_var_Selector",selected='ground_beef'),
+                uiOutput("base_var_unit_Selector"),
                 uiOutput("var_1_Selector"),
+                sliderInput("pound","ounce"),
+                #uiOutput("var_1_unit_Selector"),
                 uiOutput("var_2_Selector"),
-                uiOutput("var_3_Selector")
+                uiOutput("var_2_unit_Selector"),
+                uiOutput("var_3_Selector"),
+                uiOutput("var_3_unit_Selector")
                 ),
              #Body
              dashboardBody(
@@ -38,7 +43,7 @@ ui <- navbarPage(
                  box(width=11,
                      status="info",
                      solidHeader=TRUE,
-                     dataTableOutput('table_2'))
+                     dataTableOutput('table_1'))
                )
              )
 )#/dashboardPage 1
@@ -53,7 +58,7 @@ tabPanel(title = "Raw Data",
            dashboardSidebar(
              title = "dashboardSideBar2"),
            #Body
-           dashboardBody(dataTableOutput('table_1'))
+           dashboardBody(dataTableOutput('table_2'))
 )#/dashboardPage 2
 )#/tabPanel2
 
