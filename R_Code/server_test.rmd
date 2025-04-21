@@ -35,26 +35,208 @@ library(RColorBrewer)
 ```
 
 ```{r}
-#Main Value Data
-dir <- 'C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data'
-df.raw <- read.csv(paste(dir,'main_data_file.csv',sep='\\'))
-df.orig <- df.raw #df.raw used for table display.
+#Functions######################################################################
+variable.unit.options <- function(var.name,df.datadict){
+  unit.type <- subset(df.datadict, var_name==var.name)$measurement_type
+  #print(unit.type)
+  if(length(unit.type)==0 || unit.type=='None'){return('none')}
+  if(unit.type=='currency'){output <- 'unit'}
+  if(unit.type=='hourly_wage'){output <- c('hour','minute','day','week','month','year')}
+  if(unit.type=='weight'){output <- c('pound','ounce')}
+  if(unit.type=='volume'){output <- c('gallon','ounce')}
+  if(unit.type=='other'){output <- 'unit'}
+  return(output)
+}
 
-#Data Dictionary
-df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+variable.unit.converter <- function(df,df.datadict,var.name,unit.type.new){
+  #Retrieve information from data dictionary
+  var1 <- df[var.name]
+  var.type <- subset(df.datadict,var_name==var.name)$measurement_type
+  unit.type <- subset(df.datadict,var_name==var.name)$measurement_unit
+  
+  if(var.type=='hourly_wage') {
+    hours.var <- df[paste(var.name,'_hours',sep='')]
+    
+    if (unit.type.new == 'minute') {var1 <- var1/60} else 
+      if (unit.type.new == 'hour') {var1 <- var1} else 
+        if (unit.type.new == 'day') {var1 <- var1 * hours.var / 5} else 
+          if (unit.type.new == 'week') {var1 <- var1 * hours.var} else 
+            if (unit.type.new == 'month') {var1 <- var1 * hours.var * 4.3} else 
+              if (unit.type.new == 'year') {var1 <- var1 * hours.var * 52} else 
+              {var1 <- var1}
+  }
+  if (var.type == 'weight') {
+    if (unit.type.new == 'ounce') {var1 <- var1/16} else
+      if (unit.type.new == 'pound') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  if (var.type == 'volume') {
+    if (unit.type.new == 'ounce') {var1 <- var1/128} else
+      if (unit.type.new == 'gallon') {var1 <- var1} else
+      {var1 <- var1}
+  }
+  return(var1)
+}
 
-list <- rowSums(is.na(df.raw))
-which(list %in% list[list!=max(rowSums(is.na(df.raw)))])
-max(rowSums(is.na(df.raw)))
-
-list[list!=max(rowSums(is.na(df.raw)))]
+create_df_display <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+  df.display <- as.data.frame(df$year)
+  
+  for (i in 1:length(var.names)) {
+    var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
+    prop <- var/base_var
+    df.display <- as.data.frame(cbind(df.display,prop))
+  }
+  
+  colnames(df.display) <- c('year',var.names)
+  df.display <- df.display %>% pivot_longer(cols=var.names)
+  return(df.display)
+}
 
 non_max_na_filter <- function(df){
   #Returns df as only rows with non-max NA.  So, if the most NA columns in any row is 10, removes all rows with 10 NAs.
   return(df[which(rowSums(is.na(df)) %in% rowSums(is.na(df))[rowSums(is.na(df))!=max(rowSums(is.na(df)))]),])
 }
-non_max_na_filter(df.raw)
+
+base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
+  var.1 <- var.names[1]
+  var.2 <- var.names[2]
+  var.3 <- var.names[3]
+  print(paste('single:', var.names[3],sep=' '))
+    var.names.raw <- var.names
+  var.names <- var.names[var.names!='None']
+  #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
+  base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+
+  df.display <- as.data.frame(df$year)
+    
+  for (i in 1:length(var.names)) {
+    var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
+    prop <- var/base_var
+    df.display <- as.data.frame(cbind(df.display,prop))
+  }
+  
+  colnames(df.display) <- c('year',var.names)
+  df.display <- df.display %>% pivot_longer(cols=var.names)
+  
+  myplot <- suppressMessages(plotly_build(plot_ly(data=df.display,
+          x=~year,mode='lines+markers', split= ~name, color = ~name) %>%
+    add_trace(y = ~value) %>%
+    layout(legend=list(title=list(text='Variables')),
+           xaxis = list(title = 'Year'),
+           yaxis = list(title = paste(base_var.name, paste('(', base_var.unit,')',sep=''),sep=' ')))))
+  return(myplot)
+}
+
 ```
+
+Import & Formatting
+```{r}
+#Data###########################################################################
+#Main Value Data
+dir <- 'C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data'
+df.raw <- read.csv(paste(dir,'main_data_file.csv',sep='\\'))
+df.orig <- non_max_na_filter(df.raw) #df.raw used for table display.
+
+#Data Dictionary
+df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+
+#Define Color Palette for Graphs
+palette.main<-brewer.pal(n = 8, name = "Spectral")
+ty.color<-palette.main[7]
+ly.color<-palette.main[3]
+lly.color<-palette.main[1]
+
+# #Set main dataframes to filter from
+df.main.1 <- df.orig
+
+#Set Drop-Down lists
+variables.list <- as.data.frame(colnames(df.orig))
+#units.list <- c('unit','minute','hour','day','week','month','year','ounce','pound','oun')
+colnames(variables.list)<-c("All")
+variables.list <- variables.list %>% 
+  subset(!All %in% c('X','year')) %>%
+  filter(!grepl('hours', All))
+
+var.categories <- df.datadict %>% dplyr::select(var_category,var_name)
+commodities.list <- variables.list %>% 
+  subset(All %in% subset(var.categories,var_category=='Commodity')$var_name) %>%
+  rename(Commodities = All)
+employment.list <- variables.list %>% 
+  subset(All %in% subset(var.categories,var_category=='Employment')$var_name) %>%
+  rename(Employment = All)
+currency.list <- variables.list %>% 
+  subset(All %in% subset(var.categories,var_category=='Currency')$var_name) %>%
+  rename(Currency = All)
+```
+
+Reactive Values Stand-in (Will need input.r$ in front in server)
+```{r}
+    base_var.name = 'dollar'
+    base_var.unit = 'unit'
+    var.name.1.r = 'flour'
+    var.unit.1.r = 'pound'
+    var.name.2.r = 'milk'
+    var.unit.2.r = 'gallon'
+    var.name.3.r = 'None'
+    var.unit.3.r = 'none'
+    
+    var.names <- c(var.name.1.r,var.name.2.r,var.name.3.r)
+    var.units <- c(var.unit.1.r,var.unit.2.r,var.unit.3.r)
+```
+
+Plot
+```{r}
+    myplot <- base_var_scatterplot(df.orig,
+                                   df.datadict,
+                                   base_var.name.1.r,base_var.unit.1.r,
+                                   c(var.name.1.r,var.name.2.r,var.name.3.r),
+                                   c(var.unit.1.r,var.unit.2.r,var.unit.3.r))
+
+```
+```{r}
+df <- df.orig
+base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.names,var.units) {
+  #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
+  var.1 <- var.names[1]
+  var.2 <- var.names[2]
+  var.3 <- var.names[3]
+  print(paste('single:', var.names[3],sep=' '))
+  var.names.raw <- var.names
+  var.names <- var.names[var.names!='None']
+  #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
+  base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
+
+  df.display <- as.data.frame(df$year)
+  
+  for (i in 1:length(var.names)) {
+    var <- variable.unit.converter(df,df.datadict,var.names[i],var.units[i])
+    prop <- var/base_var
+    df.display <- as.data.frame(cbind(df.display,prop))
+  }
+  
+  colnames(df.display) <- c('year',var.names)
+  df.display <- df.display %>% pivot_longer(cols=var.names)
+  
+  # myplot <- suppressMessages(plotly_build(plot_ly(data=df.display,
+  #         x=~year,mode='lines+markers', split= ~name, color = ~name) %>%
+  #   add_trace(y = ~value) %>%
+  #   layout(legend=list(title=list(text='Variables')),
+  #          xaxis = list(title = 'Year'),
+  #          yaxis = list(title = paste(base_var.name, paste('(', base_var.unit,')',sep=''),sep=' ')))))
+  # return(myplot)
+  
+  color_map <- setNames(c("blue", "orange", "green"), var.names.raw)
+  plot_ly(data=df.display, 
+          x=~year,
+          y=~value,
+          split=~name, 
+          color=~name,
+          colors=color_map,
+          mode='lines+markers')
+```
+
 
 This section defines drop-down lists (Variable names, etc.)
 ```{r}

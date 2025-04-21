@@ -54,11 +54,20 @@ ui <- navbarPage(
                    )),
                fluidRow(
                  height = 4,
-                 box(style = 'background:grey', width=3,
-                     uiOutput("baseVarName")),
-                 box(style = 'background:blue', width=3),
-                 box(style = 'background:orange', width=3),
-                 box(style = 'background:green', width=3)
+                 box(
+                   #title = "Base Variable", 
+                   #solidHeader = FALSE, 
+                   #status = "primary", 
+                   style='background:grey',
+                   width = 3, 
+                   textOutput("text1")),
+                 # box("Text",br(),
+                 #     TextOutput(text1),
+                 #     br(),"more text.",
+                 #     style = 'background:grey',width=3),
+                 box(style = 'background:blue', width=3,textOutput("text2")),
+                 box(style = 'background:orange', width=3,textOutput("text3")),
+                 box(style = 'background:green', width=3,textOutput("text4"))
                )
              )
 )#/dashboardPage 1

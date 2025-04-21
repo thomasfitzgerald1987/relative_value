@@ -78,7 +78,6 @@ base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.
   #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
   var.names.raw <- var.names
   var.names <- var.names[var.names!='None']
-  #print(paste('base_var_scatterplot:', var.names,var.units,sep=' '))
   base_var <- variable.unit.converter(df,df.datadict,base_var.name,base_var.unit)
 
   df.display <- as.data.frame(df$year)
@@ -91,10 +90,16 @@ base_var_scatterplot <- function(df,df.datadict,base_var.name,base_var.unit,var.
   
   colnames(df.display) <- c('year',var.names)
   df.display <- df.display %>% pivot_longer(cols=var.names)
+  color_map <- setNames(c("blue", "orange", "darkgreen"), var.names.raw)
   
-  myplot <- suppressMessages(plotly_build(plot_ly(data=df.display,
-          x=~year,mode='lines+markers', split= ~name) %>%
-    add_trace(y = ~value) %>%
+  myplot <- suppressMessages(plotly_build(plot_ly(
+    data=df.display,
+    x=~year,
+    y=~value,
+    split=~name,
+    color=~name,
+    colors=color_map,
+    mode='lines+markers') %>%
     layout(legend=list(title=list(text='Variables')),
            xaxis = list(title = 'Year'),
            yaxis = list(title = paste(base_var.name, paste('(', base_var.unit,')',sep=''),sep=' ')))))
@@ -152,7 +157,7 @@ shinyServer(function(input, output, session) {
     var.unit.2.r = 'unit',
     var.name.3.r = 'mining_logging_wages',
     var.unit.3.r = 'unit')
-  
+
   input.lists <- reactiveValues(
     var.names = c(isolate(input.r$var.name.1.r),
                   isolate(input.r$var.name.2.r),
@@ -297,6 +302,11 @@ shinyServer(function(input, output, session) {
                                    input.r$base_var.name.1.r,input.r$base_var.unit.1.r,
                                    c(input.r$var.name.1.r,input.r$var.name.2.r,input.r$var.name.3.r),
                                    c(input.r$var.unit.1.r,input.r$var.unit.2.r,input.r$var.unit.3.r))})
+  
+  output$text1 <- renderText(subset(df.datadict,var_name==input.r$base_var.name.1.r)$Description)
+  output$text2 <- renderText(subset(df.datadict,var_name==input.r$var.name.1.r)$Description)
+  output$text3 <- renderText(subset(df.datadict,var_name==input.r$var.name.2.r)$Description)
+  output$text4 <- renderText(subset(df.datadict,var_name==input.r$var.name.3.r)$Description)
   
   output$table_1 <- renderDataTable(non_max_na_filter(input.df$df.display))
   output$table_2 <- renderDataTable(df.orig)
