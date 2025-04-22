@@ -170,6 +170,16 @@ currency.list <- variables.list %>%
   subset(All %in% subset(var.categories,var_category=='Currency')$var_name) %>%
   rename(Currency = All)
 ```
+datadict adjustments
+```{r}
+df.datadict$display_description <-  paste("Description: ",df.datadict$var_Description," \n",
+                                          "Default Unit: ",df.datadict$measurement_unit,"\n",
+                                          "Source: ",df.datadict$Source,"\n",
+                                          "Source Description: ",df.datadict$source_description,"\n",
+                                          sep='')
+
+```
+
 
 Reactive Values Stand-in (Will need input.r$ in front in server)
 ```{r}

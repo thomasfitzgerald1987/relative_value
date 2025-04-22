@@ -14,13 +14,14 @@ library(RColorBrewer)
 #Functions######################################################################
 variable.unit.options <- function(var.name,df.datadict){
   unit.type <- subset(df.datadict, var_name==var.name)$measurement_type
-  #print(unit.type)
+  print(paste('variable.unit.options:',var.name,unit.type,sep=' '))
   if(length(unit.type)==0 || unit.type=='None'){return('none')}
-  if(unit.type=='currency'){output <- 'unit'}
+  if(unit.type=='currency'){output <- c('unit')}
   if(unit.type=='hourly_wage'){output <- c('hour','minute','day','week','month','year')}
   if(unit.type=='weight'){output <- c('pound','ounce')}
   if(unit.type=='volume'){output <- c('gallon','ounce')}
-  if(unit.type=='other'){output <- 'unit'}
+  if(unit.type=='other'){output <- c('unit')}
+  print(output)
   return(output)
 }
 
@@ -114,6 +115,11 @@ df.orig <- non_max_na_filter(df.raw) #df.raw used for table display.
 
 #Data Dictionary
 df.datadict <- read.csv(paste(dir,'data_dictionary.csv',sep='\\'))
+df.datadict$display_description <-  paste("Description: ",df.datadict$var_Description," \n",
+                                          "Default Unit: ",df.datadict$measurement_unit,"\n",
+                                          "Source: ",df.datadict$Source,"\n",
+                                          "Source Description: ",df.datadict$source_description,"\n",
+                                          sep='')
 
 #Define Color Palette for Graphs
 palette.main<-brewer.pal(n = 8, name = "Spectral")
@@ -136,6 +142,12 @@ var.categories <- df.datadict %>% dplyr::select(var_category,var_name)
 commodities.list <- variables.list %>% 
   subset(All %in% subset(var.categories,var_category=='Commodity')$var_name) %>%
   rename(Commodities = All)
+metals.list <- variables.list %>% 
+  subset(All %in% subset(var.categories,var_category=='Metals')$var_name) %>%
+  rename(Metals = All)
+housing.list <- variables.list %>% 
+  subset(All %in% subset(var.categories,var_category=='Housing')$var_name) %>%
+  rename(Housing = All)
 employment.list <- variables.list %>% 
   subset(All %in% subset(var.categories,var_category=='Employment')$var_name) %>%
   rename(Employment = All)
@@ -183,7 +195,7 @@ shinyServer(function(input, output, session) {
     selectInput(
       inputId = "base_var.name.1.r",
       label = "Base Variable:",
-      choices = c(currency.list,commodities.list,employment.list))
+      choices = c(currency.list,commodities.list,metals.list,housing.list,employment.list))
   })
   observeEvent(input$base_var.name.1.r, {
     input.r$base_var.name.1.r <- input$base_var.name.1.r
@@ -215,7 +227,7 @@ shinyServer(function(input, output, session) {
       selectInput(
         inputId = "var.name.1.r",
         label = "Variable 1:",
-        choices = c(commodities.list,employment.list,currency.list))
+        choices = c(commodities.list,metals.list,housing.list,employment.list,currency.list))
       })
     
     observeEvent(input$var.name.1.r, {
@@ -241,7 +253,7 @@ shinyServer(function(input, output, session) {
       selectInput(
         inputId = "var.name.2.r",
         label = "Variable 2:",
-        choices = c('None',commodities.list,employment.list,currency.list))
+        choices = c('None',commodities.list,metals.list,housing.list,employment.list,currency.list))
     })
     observeEvent(input$var.name.2.r, {
       input.r$var.name.2.r <- input$var.name.2.r
@@ -265,7 +277,7 @@ shinyServer(function(input, output, session) {
     selectInput(
       inputId = "var.name.3.r",
       label = "Variable 3:",
-      choices = c('None',commodities.list,employment.list,currency.list))
+      choices = c('None',commodities.list,metals.list,housing.list,employment.list,currency.list))
   })
   observeEvent(input$var.name.3.r, {
     input.r$var.name.3.r <- input$var.name.3.r
@@ -303,10 +315,10 @@ shinyServer(function(input, output, session) {
                                    c(input.r$var.name.1.r,input.r$var.name.2.r,input.r$var.name.3.r),
                                    c(input.r$var.unit.1.r,input.r$var.unit.2.r,input.r$var.unit.3.r))})
   
-  output$text1 <- renderText(subset(df.datadict,var_name==input.r$base_var.name.1.r)$Description)
-  output$text2 <- renderText(subset(df.datadict,var_name==input.r$var.name.1.r)$Description)
-  output$text3 <- renderText(subset(df.datadict,var_name==input.r$var.name.2.r)$Description)
-  output$text4 <- renderText(subset(df.datadict,var_name==input.r$var.name.3.r)$Description)
+  output$text1 <- renderText(subset(df.datadict,var_name==input.r$base_var.name.1.r)$display_description)
+  output$text2 <- renderText(subset(df.datadict,var_name==input.r$var.name.1.r)$display_description)
+  output$text3 <- renderText(subset(df.datadict,var_name==input.r$var.name.2.r)$display_description)
+  output$text4 <- renderText(subset(df.datadict,var_name==input.r$var.name.3.r)$display_description)
   
   output$table_1 <- renderDataTable(non_max_na_filter(input.df$df.display))
   output$table_2 <- renderDataTable(df.orig)

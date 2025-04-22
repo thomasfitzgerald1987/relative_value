@@ -11,12 +11,12 @@ library(RColorBrewer)
 
 
 ui <- navbarPage(
-  title = "navbarPage",
+  title = "navbarPage_TEST",
   
   tabPanel(title = "Tab 1",
     dashboardPage(
              #Header
-             dashboardHeader(title = "dashboardHeader"),
+             dashboardHeader(title = "Variable Selector"),
              #Sidebar
              dashboardSidebar(
                #style = "background: black",

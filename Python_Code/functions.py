@@ -3,6 +3,19 @@ import datetime
 import math
 #Notes: May want to switch id to list and str.contains() to something vectorized so we can pull all desired values at once.
 
+def datadict_row_test(rownum):
+    #Paste to console to get inputs for preprocessor functions
+    df_data_dict = pd.read_csv('C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data\\data_dictionary.csv').fillna('')
+    data_dir = 'C:\\Users\\Thoma\\OneDrive\\Desktop\\portoflio_project_1\\data\\'
+    df_data = pd.DataFrame({'year': [*range(1900, 2023, 1)], 'dollar': 1})
+
+        row = df_data_dict.iloc[rownum,:]
+        filename = data_dir + row.filename
+        id = row.Identifier
+        var_name = row.var_name
+        preprocessor_function= row.preprocessor_function
+    return(row)
+
 #Bureau of Labor Statistics Pre-processor
 def BLS_product_preprocessor(filename,id,var_name):
     df = pd.read_csv(filename, sep='\t')
@@ -78,4 +91,20 @@ def bitcoin_data_parser(filename,id,var_name):
     #Unit Conversions
     #Average by Year
     df = df.groupby(['year']).mean().reset_index()
+    return(df)
+
+def census_gov_preprocessor(filename,id,var_name):
+    #Get File
+    df = pd.read_excel(filename,skiprows = 5)
+    #Isolate columns of interest
+    df = df[[df.columns[0],id]]
+    #Standardize names
+    df.columns = ['year',var_name]
+    #Clean
+    df['year'] = pd.to_numeric(df['year'],errors='coerce')
+    df[var_name] = pd.to_numeric(df[var_name],errors='coerce')
+    df = df.dropna()
+    #Convert to Annual
+    #Unit Conversions
+    #Average by Year
     return(df)
